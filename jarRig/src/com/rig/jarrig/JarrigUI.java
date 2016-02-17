@@ -1,4 +1,4 @@
-package com.example.jarrig;
+package com.rig.jarrig;
 
 import com.vaadin.annotations.Theme;
 import com.vaadin.server.VaadinRequest;
