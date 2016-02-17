@@ -87,8 +87,7 @@ public class RigComponents extends CustomComponent {
 //        while ((line = br.readLine()) != null)
 //            System.out.println(line);
 //        br.close();
-	    channel.disconnect();
-	    session.disconnect();
+
         }
     catch(Exception e){System.err.print(e);}		
 	}

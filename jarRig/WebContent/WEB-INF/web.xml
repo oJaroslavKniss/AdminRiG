@@ -14,7 +14,7 @@
 			<description>
 			Vaadin UI class to use</description>
 			<param-name>UI</param-name>
-			<param-value>com.example.jarrig.JarrigUI</param-value>
+			<param-value>com.rig.jarrig.JarrigUI</param-value>
 		</init-param>
 		<init-param>
 			<description>
