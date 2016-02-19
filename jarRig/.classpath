@@ -9,5 +9,6 @@
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry kind="lib" path="C:/Users/jaroslav.kniss/eclipse/plugins/com.jcraft.jsch_0.1.53.v201508180515.jar"/>
+	<classpathentry kind="lib" path="C:/Users/jaroslav.kniss/eclipse/plugins/plexus-archiver-3.0.3.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>
