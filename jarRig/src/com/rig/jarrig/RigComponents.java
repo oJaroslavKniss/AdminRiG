@@ -1,9 +1,14 @@
 package com.rig.jarrig;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Timer;
@@ -111,6 +116,26 @@ public class RigComponents extends CustomComponent {
     String deleteSiteListPos = "cd /opt/jlr/share/ci/preinstalled/apps/nx_browser_chrome/configs\n rm sitelist_pos.txt";
     String createOIB_br_backtrace = "for coredump in /media/user/coredump/core-OIB_br-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_browser/browser/OIB_br ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_OIB_br.txt";
     String createBrUiThr_backtrace = "for coredump in /media/user/coredump/core-oib_brUiThr-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_browser/browser/OIB_br ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_oib_brUiThr.txt";
+    String createBrEgThread_backtrace = "for coredump in /media/user/coredump/core-oib_brEgThread-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_browser/browser/OIB_br ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_oib_brEgThread.txt";
+    String createOIB_ui_backtrace = "for coredump in /media/user/coredump/core-OIB_ui-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_browser/ui/OIB_ui ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_OIB_ui.txt";
+    String createNx_sp_webruntim_backtrace = "for coredump in /media/user/coredump/core-nx_sp_webruntim-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_sp_webruntime/nx_sp_webruntime  ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_nx_sp_webruntime.txt";
+    String createNetfrontnx_backtrace = "for coredump in /media/user/coredump/core-netfrontnx-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb //opt/jlr/bin/nx_ci_webruntime/netfrontnx  ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_netfrontnx.txt";
+    String createBacktraces = createOIB_br_backtrace + "\n" + createBrUiThr_backtrace + "\n"
+	    + createBrEgThread_backtrace + "\n" + createOIB_ui_backtrace + "\n" + createNx_sp_webruntim_backtrace + "\n"
+	    + createNetfrontnx_backtrace;
+    String listCoredumps = "cd /media/user/coredump/" + "\n" + "ls core-OIB_br-*" + "\n" + "ls core-oib_brUiThr-*"
+	    + "\n" + "ls core-oib_brEgThread-*" + "\n" + "ls core-OIB_ui-*" + "\n" + "ls core-nx_sp_webruntim-*" + "\n"
+	    + "ls core-netfrontnx-*";
+    String remoteConfigPath = "/opt/jlr/share/ci/preinstalled/apps/nx_browser_chrome/configs";
+    String remoteCoredumpPath = "/media/user/coredump";
+    boolean oib_br;
+    boolean oib_brUi;
+    boolean oib_brEg;
+    boolean oib_ui;
+    boolean webruntime;
+    boolean netfrontx;
+    File buildFolder;
+    File resultsFolder;
     InputStream in;
     Timer timerStart = new Timer();
     Timer timerStop = new Timer();
@@ -125,6 +150,7 @@ public class RigComponents extends CustomComponent {
     public RigComponents() {
 	buildMainLayout();
 	setCompositionRoot(mainLayout);
+	initDefaultFolders();
 	registerWrapper();
 	initFileExplorer();
 	initTextfieldListener();
@@ -210,6 +236,12 @@ public class RigComponents extends CustomComponent {
 		((ChannelExec) channel)
 			.setCommand(deleteCoredumps + "\n" + deleteEvalResult + "\n" + deleteSiteListPos);
 		updateOutputConsole(deleteCoredumps + "\n" + deleteEvalResult + "\n" + deleteSiteListPos);
+		oib_br = false;
+		oib_brUi = false;
+		oib_brEg = false;
+		oib_ui = false;
+		webruntime = false;
+		netfrontx = false;
 	    }
 
 	});
@@ -254,15 +286,171 @@ public class RigComponents extends CustomComponent {
 	initButtonStop();
     }
 
+    private void initDefaultFolders() {
+	buildFolder = new File("C:\\builds");
+	resultsFolder = new File("C:\\results");
+	if (!buildFolder.exists())
+	    buildFolder.mkdir();
+	if (!resultsFolder.exists())
+	    resultsFolder.mkdir();
+    }
+
     private void initButtonStop() {
 	stopAutotest.addClickListener(new ClickListener() {
+	    String coredumps;
+	    String[] coredumpList;
 
 	    public void buttonClick(ClickEvent event) {
+		IPs.setEnabled(false);
 		openChannel();
-		((ChannelExec) channel).setCommand(stopAutoTest + "\n" + createOIB_br_backtrace);
-		updateOutputConsole(stopAutoTest + "\n" + createOIB_br_backtrace);
+		// ((ChannelExec) channel).setCommand(stopAutoTest + "\n" +
+		// createBacktraces);
+		// updateOutputConsole(stopAutoTest + "\n" + createBacktraces);
 
+		((ChannelExec) channel).setCommand(listCoredumps);
+		coredumps = getCoredumpList();
+		coredumpList = identifyCoredumps(coredumps);
+		tarEvalResultFolder();
+		for (int i = 0; i < coredumpList.length; i++) {
+		    if (!session.isConnected())
+			openSSHConnection();
+		    copyFilesFromServer(coredumpList[i], resultsFolder.getPath() + "/", remoteCoredumpPath);
+		}
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer("config_browser.ini", resultsFolder.getPath() + "/", remoteConfigPath);
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer("config_ui.ini", resultsFolder.getPath() + "/", remoteConfigPath);
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer("sitelist.txt", resultsFolder.getPath() + "/", remoteConfigPath);
+
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer("eval_result.tar", resultsFolder.getPath() + "/", remoteConfigPath);
+		untarEvalResult();
+		IPs.setEnabled(true);
 		startTest.setEnabled(true);
+	    }
+
+	    private void untarEvalResult() {
+
+	    }
+
+	    private void tarEvalResultFolder() {
+		if (!session.isConnected())
+		    openSSHConnection();
+		openChannel();
+		((ChannelExec) channel)
+			.setCommand("cd " + remoteConfigPath + "\n" + " tar -cvf eval_result.tar eval_result");
+		updateOutputConsole("");
+	    }
+
+	    private String[] identifyCoredumps(String coredump) {
+		String lines[] = coredump.split("\\r?\\n");
+		for (int i = 0; i < lines.length; i++) {
+		    if (lines[i].startsWith("core-OIB_br")) {
+			oib_br = true;
+			break;
+		    }
+		}
+		for (int i = 0; i < lines.length; i++) {
+		    if (lines[i].startsWith("core-oib_brUiThr")) {
+			oib_brUi = true;
+			break;
+		    }
+		}
+		for (int i = 0; i < lines.length; i++) {
+		    if (lines[i].startsWith("core-oib_brEgThread")) {
+			oib_brEg = true;
+			break;
+		    }
+		}
+		for (int i = 0; i < lines.length; i++) {
+		    if (lines[i].startsWith("core-OIB_ui")) {
+			oib_ui = true;
+			break;
+		    }
+		}
+		for (int i = 0; i < lines.length; i++) {
+		    if (lines[i].startsWith("core-nx_sp_webruntim")) {
+			webruntime = true;
+			break;
+		    }
+		}
+		for (int i = 0; i < lines.length; i++) {
+		    if (lines[i].startsWith("core-netfrontnx")) {
+			netfrontx = true;
+			break;
+		    }
+		}
+		return lines;
+
+	    }
+
+	    private String getCoredumpList() {
+		String outStream = "";
+		try {
+		    in = channel.getInputStream();
+		    channel.connect();
+
+		    byte[] tmp = new byte[1024];
+		    while (true) {
+			while (in.available() > 0) {
+			    int i = in.read(tmp, 0, 1024);
+			    if (i < 0)
+				break;
+			    outStream = outStream + new String(tmp, 0, i);
+			    System.out.print(new String(tmp, 0, i));
+			}
+			if (channel.isClosed()) {
+			    if (in.available() > 0)
+				continue;
+			    break;
+			}
+		    }
+		    consoleOutput.setReadOnly(false);
+		    consoleOutput.setValue(outStream);
+		    consoleOutput.setReadOnly(true);
+		} catch (Exception e) {
+		    System.out.println(e);
+		}
+		return outStream;
+
+	    }
+
+	    private void copyFilesFromServer(String fileName, String localDir, String remotePath) {
+
+		try {
+
+		    ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+		    sftpChannel.connect();
+		    sftpChannel.cd(remotePath); // cd to dir that
+						// contains file
+
+		    byte[] buffer = new byte[1024];
+		    BufferedInputStream bis = new BufferedInputStream(sftpChannel.get(fileName));
+		    File newFile = new File(localDir + fileName);
+		    OutputStream os = new FileOutputStream(newFile); // CRASHES
+								     // HERE
+		    BufferedOutputStream bos = new BufferedOutputStream(os);
+		    int readCount;
+		    while ((readCount = bis.read(buffer)) > 0) {
+			bos.write(buffer, 0, readCount);
+		    }
+		    bis.close();
+		    bos.close();
+
+		} catch (IOException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+
+		} catch (JSchException e) {
+		    e.printStackTrace();
+		} catch (SftpException e) {
+		    e.printStackTrace();
+		}
 	    }
 	});
 
@@ -418,7 +606,7 @@ public class RigComponents extends CustomComponent {
     }
 
     private void initFileExplorer() {
-	FilesystemContainer rigDocs = new FilesystemContainer(new File("C:/Users/jaroslav.kniss/Downloads/"), false);
+	FilesystemContainer rigDocs = new FilesystemContainer(new File(buildFolder.getPath()), false);
 	filesystem.setContainerDataSource(rigDocs);
 	filesystem.setImmediate(true);
 	filesystem.setSelectable(true);
