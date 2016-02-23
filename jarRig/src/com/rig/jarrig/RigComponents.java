@@ -120,14 +120,17 @@ public class RigComponents extends CustomComponent {
     String createOIB_ui_backtrace = "for coredump in /media/user/coredump/core-OIB_ui-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_browser/ui/OIB_ui ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_OIB_ui.txt";
     String createNx_sp_webruntim_backtrace = "for coredump in /media/user/coredump/core-nx_sp_webruntim-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb /opt/jlr/bin/nx_sp_webruntime/nx_sp_webruntime  ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_nx_sp_webruntime.txt";
     String createNetfrontnx_backtrace = "for coredump in /media/user/coredump/core-netfrontnx-* ; do echo -e \"--------\n${coredump}\n----\n\"; gdb //opt/jlr/bin/nx_ci_webruntime/netfrontnx  ${coredump} -ex bt -ex \"thread apply all bt\" -batch; done > /var/db/ext/$(date '+%Y%m%d')_backtraces_netfrontnx.txt";
-    String createBacktraces = createOIB_br_backtrace + "\n" + createBrUiThr_backtrace + "\n"
-	    + createBrEgThread_backtrace + "\n" + createOIB_ui_backtrace + "\n" + createNx_sp_webruntim_backtrace + "\n"
-	    + createNetfrontnx_backtrace;
     String listCoredumps = "cd /media/user/coredump/" + "\n" + "ls core-OIB_br-*" + "\n" + "ls core-oib_brUiThr-*"
 	    + "\n" + "ls core-oib_brEgThread-*" + "\n" + "ls core-OIB_ui-*" + "\n" + "ls core-nx_sp_webruntim-*" + "\n"
 	    + "ls core-netfrontnx-*";
     String remoteConfigPath = "/opt/jlr/share/ci/preinstalled/apps/nx_browser_chrome/configs";
     String remoteCoredumpPath = "/media/user/coredump";
+    String oib_brTxt = "_backtraces_OIB_br.txt";
+    String netfrontxTxt = "_backtraces_netfrontnx.txt";
+    String oib_brEgTxt = "_backtraces_oib_brEgThread.txt";
+    String oib_uiTxt = "_backtraces_OIB_ui.txt";
+    String webruntimeTxt = "_backtraces_nx_sp_webruntime.txt";
+    String oib_brUiTxt = "_backtraces_oib_brUiThr.txt";
     boolean oib_br;
     boolean oib_brUi;
     boolean oib_brEg;
@@ -297,19 +300,58 @@ public class RigComponents extends CustomComponent {
 
     private void initButtonStop() {
 	stopAutotest.addClickListener(new ClickListener() {
-	    String coredumps;
-	    String[] coredumpList;
+	    String coredumps = null;
+	    String[] coredumpList = null;
+	    String backtraces = "";
+	    String getTime = null;
 
 	    public void buttonClick(ClickEvent event) {
 		IPs.setEnabled(false);
 		openChannel();
-		// ((ChannelExec) channel).setCommand(stopAutoTest + "\n" +
-		// createBacktraces);
-		// updateOutputConsole(stopAutoTest + "\n" + createBacktraces);
-
 		((ChannelExec) channel).setCommand(listCoredumps);
-		coredumps = getCoredumpList();
+		coredumps = getInput();
 		coredumpList = identifyCoredumps(coredumps);
+		for (int i = 0; i < 6; i++) {
+		    backtraces = backtraces + "\n" + createBracktraces();
+		}
+		((ChannelExec) channel).setCommand(stopAutoTest + "\n" + backtraces);
+		updateOutputConsole(stopAutoTest + "\n" + backtraces);
+		if (!session.isConnected()) {
+		    openSSHConnection();
+		}
+		openChannel();
+		((ChannelExec) channel).setCommand("date '+%Y%m%d'");
+		getTime = getInput();
+		oib_brTxt = getTime.replace("\n", "") + oib_brTxt;
+		oib_brEgTxt = getTime.replace("\n", "") + oib_brEgTxt;
+		oib_brUiTxt = getTime.replace("\n", "") + oib_brUiTxt;
+		oib_uiTxt = getTime.replace("\n", "") + oib_uiTxt;
+		webruntimeTxt = getTime.replace("\n", "") + webruntimeTxt;
+		netfrontxTxt = getTime.replace("\n", "") + netfrontxTxt;
+
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer(oib_brTxt, resultsFolder.getPath() + "/", "/var/db/ext/");
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer(oib_brEgTxt, resultsFolder.getPath() + "/", "/var/db/ext/");
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer(oib_brUiTxt, resultsFolder.getPath() + "/", "/var/db/ext/");
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer(oib_uiTxt, resultsFolder.getPath() + "/", "/var/db/ext/");
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer(webruntimeTxt, resultsFolder.getPath() + "/", "/var/db/ext/");
+		if (!session.isConnected())
+		    openSSHConnection();
+		copyFilesFromServer(netfrontxTxt, resultsFolder.getPath() + "/", "/var/db/ext/");
+
+		if (!session.isConnected()) {
+		    openSSHConnection();
+		}
+		openChannel();
 		tarEvalResultFolder();
 		for (int i = 0; i < coredumpList.length; i++) {
 		    if (!session.isConnected())
@@ -332,6 +374,34 @@ public class RigComponents extends CustomComponent {
 		untarEvalResult();
 		IPs.setEnabled(true);
 		startTest.setEnabled(true);
+	    }
+
+	    private String createBracktraces() {
+		if (oib_br) {
+		    oib_br = false;
+		    return createOIB_br_backtrace;
+		}
+		if (oib_brEg) {
+		    oib_brEg = false;
+		    return createBrEgThread_backtrace;
+		}
+		if (oib_brUi) {
+		    oib_brUi = false;
+		    return createOIB_ui_backtrace;
+		}
+		if (oib_ui) {
+		    oib_ui = false;
+		    return createOIB_ui_backtrace;
+		}
+		if (webruntime) {
+		    webruntime = false;
+		    return createNx_sp_webruntim_backtrace;
+		}
+		if (netfrontx) {
+		    netfrontx = false;
+		    return createNetfrontnx_backtrace;
+		}
+		return "";
 	    }
 
 	    private void untarEvalResult() {
@@ -389,7 +459,7 @@ public class RigComponents extends CustomComponent {
 
 	    }
 
-	    private String getCoredumpList() {
+	    private String getInput() {
 		String outStream = "";
 		try {
 		    in = channel.getInputStream();
