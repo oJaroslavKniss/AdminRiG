@@ -294,7 +294,6 @@ public class RigComponents extends CustomComponent {
 		String oib_uiTxt = "_backtraces_OIB_ui.txt";
 		String webruntimeTxt = "_backtraces_nx_sp_webruntime.txt";
 		String oib_brUiTxt = "_backtraces_oib_brUiThr.txt";
-		session.disconnect();
 		if (!session.isConnected())
 		    openSSHConnection();
 		IPs.setEnabled(false);
