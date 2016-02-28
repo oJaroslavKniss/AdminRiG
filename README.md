@@ -1,4 +1,4 @@
-# AdminRiG
+# jarRiG
 
 #Requirements
 
