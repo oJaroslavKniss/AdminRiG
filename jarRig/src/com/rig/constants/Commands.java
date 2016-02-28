@@ -24,8 +24,8 @@ public final class Commands {
 	public static final String remoteCoredumpPath = "/media/user/coredump";
 	public static final String INSTRUCTION = "1. Add IP to C:\\builds\\config\\config.ini file and save\n"
 			+ "2. Put origin daily build you downloaded from Jenkins to C:\\builds folder\n"
-			+ "3. Copy sitelist.txt also to C:\\builds\n" + "4. Choose your RIG ip from the list\n"
+			+ "3. Copy sitelist.txt also to C:\\builds\n" + "4. Choose your ip from the list\n"
 			+ "5. Drag and drop daily build from Explorer to Daily Build rpms field and sitelist.txt to corresponding Sitelist field\n"
-			+ "6. Choose the time to start the autotest and click on Start\n"
+			+ "6. Choose time to start the autotest and click on Start\n"
 			+ "7. The results will be created after you click on Stop button, store location: C:\\results";
 }
