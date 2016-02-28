@@ -1,5 +1,3 @@
-# jarRiG
-
 #Requirements
 
 A webserver, such as Tomcat, is needed to run jarRig.war
